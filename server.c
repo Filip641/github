@@ -35,8 +35,9 @@ void *hraciFun(void *arg){
     int idHraca = hracD->idHraca;
     int newsockfd;
 
-    char menoHraca[VELKOST_MENA];
-    char c[2];
+    char *menoHraca = malloc(VELKOST_MENA* sizeof(char));
+
+    //char menoHraca[VELKOST_MENA];
     char suradnice[3];
     int riadok,stlpec;
     int n;
@@ -88,21 +89,22 @@ void *hraciFun(void *arg){
         printf("Hra sa spusta!...\n\n");
     }
 
-    pthread_barrier_wait(hracD->spoluD->cakaj);
-
     pthread_mutex_lock(hracD->spoluD->mutex);
     if(idHraca == hracD->spoluD->zacinajuciHrac){
         strcpy(hracD->spoluD->menoVyhercu, menoHraca);
     }
     pthread_mutex_unlock(hracD->spoluD->mutex);
 
-    /** **********     Zaciatok hry     ************ **/
+    pthread_barrier_wait(hracD->spoluD->cakaj);
+/** **********     Zaciatok hry     ************ **/
 
-    /* Ked sa vsetci hraci pripoja */
+/* Ked sa vsetci hraci pripoja */
+    pthread_mutex_lock(hracD->spoluD->mutex);
     sleep(1);
     strcpy(hracD->infoHry, "ZACINA SA HRA:");
     strcat(hracD->infoHry, hracD->spoluD->menoVyhercu);
     zapisHracovi(newsockfd, hracD->infoHry);
+    pthread_mutex_unlock(hracD->spoluD->mutex);
 
 
     while (!koniecHry) {
@@ -164,19 +166,22 @@ void *hraciFun(void *arg){
                 for(int j=0; j< hracD->spoluD->velkostMapy - 2; j++){
                     if (hracD->spoluD->mapaHry[i][j] == 'X' && hracD->spoluD->mapaHry[i][j + 1] == 'X' && hracD->spoluD->mapaHry[i][j + 2] == 'X' ) strcpy(bufferWin, "WINNER 0.");
                     if (hracD->spoluD->mapaHry[i][j] == 'O' && hracD->spoluD->mapaHry[i][j + 1] == 'O' && hracD->spoluD->mapaHry[i][j + 2] == 'O' ) strcpy(bufferWin, "WINNER 1.");
-                    if (hracD->spoluD->mapaHry[i][j] == 'Z' && hracD->spoluD->mapaHry[i][j + 1] == 'Z' && hracD->spoluD->mapaHry[i][j + 2] == 'Z' ) strcpy(bufferWin, "WINNER 2.");                }
+                    if (hracD->spoluD->mapaHry[i][j] == 'Z' && hracD->spoluD->mapaHry[i][j + 1] == 'Z' && hracD->spoluD->mapaHry[i][j + 2] == 'Z' ) strcpy(bufferWin, "WINNER 2.");
+                }
             }
             for(int i=0; i< hracD->spoluD->velkostMapy - 2; i++){
                 for(int j=0; j< hracD->spoluD->velkostMapy - 2; j++){
                     if (hracD->spoluD->mapaHry[i][j] == 'X' && hracD->spoluD->mapaHry[i + 1][j + 1] == 'X' && hracD->spoluD->mapaHry[i + 2][j + 2] == 'X' ) strcpy(bufferWin, "WINNER 0.");
                     if (hracD->spoluD->mapaHry[i][j] == 'O' && hracD->spoluD->mapaHry[i + 1][j + 1] == 'O' && hracD->spoluD->mapaHry[i + 2][j + 2] == 'O' ) strcpy(bufferWin, "WINNER 1.");
-                    if (hracD->spoluD->mapaHry[i][j] == 'Z' && hracD->spoluD->mapaHry[i + 1][j + 1] == 'Z' && hracD->spoluD->mapaHry[i + 2][j + 2] == 'Z' ) strcpy(bufferWin, "WINNER 2.");                }
+                    if (hracD->spoluD->mapaHry[i][j] == 'Z' && hracD->spoluD->mapaHry[i + 1][j + 1] == 'Z' && hracD->spoluD->mapaHry[i + 2][j + 2] == 'Z' ) strcpy(bufferWin, "WINNER 2.");
+                }
             }
             for(int i=2; i<hracD->spoluD->velkostMapy; i++){
                 for(int j=0; j< hracD->spoluD->velkostMapy - 2; j++){
                     if (hracD->spoluD->mapaHry[i][j] == 'X' && hracD->spoluD->mapaHry[i - 1][j + 1] == 'X' && hracD->spoluD->mapaHry[i - 2][j + 2] == 'X' ) strcpy(bufferWin, "WINNER 0.");
                     if (hracD->spoluD->mapaHry[i][j] == 'O' && hracD->spoluD->mapaHry[i - 1][j + 1] == 'O' && hracD->spoluD->mapaHry[i - 2][j + 2] == 'O' ) strcpy(bufferWin, "WINNER 1.");
-                    if (hracD->spoluD->mapaHry[i][j] == 'Z' && hracD->spoluD->mapaHry[i - 1][j + 1] == 'Z' && hracD->spoluD->mapaHry[i - 2][j + 2] == 'Z' ) strcpy(bufferWin, "WINNER 2.");                }
+                    if (hracD->spoluD->mapaHry[i][j] == 'Z' && hracD->spoluD->mapaHry[i - 1][j + 1] == 'Z' && hracD->spoluD->mapaHry[i - 2][j + 2] == 'Z' ) strcpy(bufferWin, "WINNER 2.");
+                }
             }
 
             pthread_mutex_lock(hracD->spoluD->mutex);
@@ -184,24 +189,16 @@ void *hraciFun(void *arg){
             pthread_mutex_unlock(hracD->spoluD->mutex);
         }
         if ( idHraca != hracD->spoluD->zacinajuciHrac ){
-            //do {
             citajHraca(newsockfd, hracD->okInfo);
-            printf("OK--%d\n",idHraca);
-            //}while (strcmp(hracD->okInfo, "OK"));
 
             while (strcmp(hracD->infoHraca, "CIEL_OK")){
-                printf("OK--CIEL%d\n",idHraca);
             }
             //sleep(1);
 
             zapisHracovi(newsockfd, hracD->infoHry);
-
         }
 
-        //do {
         citajHraca(newsockfd, hracD->okInfo);
-        printf("OK%d\n",idHraca);
-        //}while (strcmp(hracD->okInfo, "OK"));
 
 
 
@@ -235,7 +232,6 @@ void *hraciFun(void *arg){
             }
         }
         pthread_mutex_unlock(hracD->spoluD->mutex);
-        printf("OK%d\n",idHraca);
         tahy++;
 
         //pthread_barrier_wait(hracD->spoluD->cakaj);
@@ -245,6 +241,8 @@ void *hraciFun(void *arg){
 
     }
 
+    free(menoHraca);
+    menoHraca = NULL;
     free(bufferWin);
     bufferWin = NULL;
     close(newsockfd);
@@ -343,7 +341,7 @@ int server(int argc, char *argv[]){
     printf("Hra bola uspesne nastavena s parametrami:\npocet hracov %d\nvelkost mapy:%dx%d\n",maxPocetHracov,velkostMapy,velkostMapy);
     printf("------------------------------------------------------\n\n");
 
-    pthread_t hraci[maxPocetHracov], kontrola;
+    pthread_t hraci[maxPocetHracov];
     pthread_mutex_t mutex;
     pthread_mutex_init(&mutex,NULL);
     pthread_barrier_t cakajHracov;
